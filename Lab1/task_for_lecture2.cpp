@@ -80,7 +80,7 @@ void CompareForAndCilk_For(size_t sz)
     duration<double> cilk_for_duration = (t2 - t1);
 
     printf("CompareForAndCilk_For:\n"
-           "array_size = %d (elements)\n"
+           "vec_size = %d (elements)\n"
            "for_duration = %g (seconds)\n"
            "cilk_for_duration = %g (seconds)\n\n",
            sz, for_duration.count(), cilk_for_duration.count());
@@ -94,7 +94,7 @@ int main()
     __cilkrts_set_param("nworkers", "4");
 
     long i;
-    const long mass_size = 10000;
+    const long mass_size = 10000 * 100;
     int *mass_begin, *mass_end;
     int* mass = new int[mass_size];
 
@@ -106,6 +106,8 @@ int main()
     mass_begin = mass;
     mass_end = mass_begin + mass_size;
 
+    printf("mass_size = %d (elements)\n\n", mass_size);
+
     ReducerMaxTest(mass, mass_size);
     ReducerMinTest(mass, mass_size);
 
@@ -114,7 +116,7 @@ int main()
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     duration<double> duration = (t2 - t1);
-    printf("ParallelSort: array_size = %d (elements), duration = %g (seconds)\n\n", mass_size, duration.count());
+    printf("ParallelSort: duration = %g (seconds)\n\n", duration.count());
 
     ReducerMaxTest(mass, mass_size);
     ReducerMinTest(mass, mass_size);
