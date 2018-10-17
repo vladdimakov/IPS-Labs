@@ -7,7 +7,7 @@
 using namespace std::chrono;
 
 // количество строк в исходной квадратной матрице
-const int MATRIX_SIZE = 1500;
+const int MATRIX_SIZE = 15;
 
 /// Функция InitMatrix() заполняет переданную в качестве
 /// параметра квадратную матрицу случайными значениями
@@ -28,69 +28,21 @@ void InitMatrix(double** matrix)
     }
 }
 
-/// Функция SerialGaussMethod() решает СЛАУ методом Гаусса
-/// matrix - исходная матрица коэффиициентов уравнений, входящих в СЛАУ,
-/// последний столбей матрицы - значения правых частей уравнений
-/// rows - количество строк в исходной матрице
-/// result - массив ответов СЛАУ
-void SerialGaussMethod(double** matrix, const int rows, double* result)
+/// Функция InitTestMatrix() заполняет переданную в качестве
+/// параметра квадратную матрицу значениями, приводимыми в примере
+/// matrix - исходная матрица СЛАУ
+void InitTestMatrix(double** test_matrix)
 {
-    int k;
-    double koef;
-
-    // прямой ход метода Гаусса
-    for (k = 0; k < rows; ++k)
-    {
-        //
-        for (int i = k + 1; i < rows; ++i)
-        {
-            koef = -matrix[i][k] / matrix[k][k];
-
-            for (int j = k; j <= rows; ++j)
-            {
-                matrix[i][j] += koef * matrix[k][j];
-            }
-        }
-    }
-
-    // обратный ход метода Гаусса
-    result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
-
-    for (k = rows - 2; k >= 0; --k)
-    {
-        result[k] = matrix[k][rows];
-
-        //
-        for (int j = k + 1; j < rows; ++j)
-        {
-            result[k] -= matrix[k][j] * result[j];
-        }
-
-        result[k] /= matrix[k][k];
-    }
-}
-
-int main()
-{
-    srand((unsigned)time(0));
-
-    int i;
-
     // кол-во строк в матрице, приводимой в качестве примера
     const int test_matrix_lines = 4;
 
-    double** test_matrix = new double*[test_matrix_lines];
-
     // цикл по строкам
-    for (i = 0; i < test_matrix_lines; ++i)
+    for (int i = 0; i < test_matrix_lines; ++i)
     {
         // (test_matrix_lines + 1)- количество столбцов в тестовой матрице,
         // последний столбец матрицы отведен под правые части уравнений, входящих в СЛАУ
         test_matrix[i] = new double[test_matrix_lines + 1];
     }
-
-    // массив решений СЛАУ
-    double* result = new double[test_matrix_lines];
 
     // инициализация тестовой матрицы
     test_matrix[0][0] = 2;
@@ -113,17 +65,80 @@ int main()
     test_matrix[3][2] = 9;
     test_matrix[3][3] = 2;
     test_matrix[3][4] = 37;
+}
 
-    SerialGaussMethod(test_matrix, test_matrix_lines, result);
+/// Функция SerialGaussMethod() решает СЛАУ методом Гаусса последовательно
+/// matrix - исходная матрица коэффиициентов уравнений, входящих в СЛАУ,
+/// последний столбей матрицы - значения правых частей уравнений
+/// rows - количество строк в исходной матрице
+/// result - массив ответов СЛАУ
+void SerialGaussMethod(double** matrix, const int rows, double* result)
+{
+    int k;
+    double koef;
 
-    for (i = 0; i < test_matrix_lines; ++i)
+    high_resolution_clock::time_point t1, t2;
+    t1 = high_resolution_clock::now();
+
+    // прямой ход метода Гаусса
+    for (k = 0; k < rows; ++k)
     {
-        delete[] test_matrix[i];
+        //
+        for (int i = k + 1; i < rows; ++i)
+        {
+            koef = -matrix[i][k] / matrix[k][k];
+
+            for (int j = k; j <= rows; ++j)
+            {
+                matrix[i][j] += koef * matrix[k][j];
+            }
+        }
+    }
+
+    t2 = high_resolution_clock::now();
+    duration<double> duration = (t2 - t1);
+    printf("Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
+
+    // обратный ход метода Гаусса
+    result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
+
+    for (k = rows - 2; k >= 0; --k)
+    {
+        result[k] = matrix[k][rows];
+
+        //
+        for (int j = k + 1; j < rows; ++j)
+        {
+            result[k] -= matrix[k][j] * result[j];
+        }
+
+        result[k] /= matrix[k][k];
+    }
+}
+
+int main()
+{
+    srand((unsigned)time(0));
+
+    bool useTestMatrix = false;
+
+    const int matrix_lines = useTestMatrix ? 4 : MATRIX_SIZE;
+    double** matrix = new double*[matrix_lines];
+    useTestMatrix ? InitTestMatrix(matrix) : InitMatrix(matrix);
+
+    // массив решений СЛАУ
+    double* result = new double[matrix_lines];
+
+    SerialGaussMethod(matrix, matrix_lines, result);
+
+    for (int i = 0; i < matrix_lines; ++i)
+    {
+        delete[] matrix[i];
     }
 
     printf("Solution:\n");
 
-    for (i = 0; i < test_matrix_lines; ++i)
+    for (int i = 0; i < matrix_lines; ++i)
     {
         printf("x(%d) = %lf\n", i, result[i]);
     }
