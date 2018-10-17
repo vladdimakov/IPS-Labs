@@ -164,7 +164,8 @@ void ParallelGaussMethod(double** matrix, const int rows, double* result)
         result[k] /= matrix[k][k];
     }
 }
-* / int main()
+
+int main()
 {
     srand((unsigned)time(0));
 
