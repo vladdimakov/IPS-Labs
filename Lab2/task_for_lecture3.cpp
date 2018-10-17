@@ -7,7 +7,7 @@
 using namespace std::chrono;
 
 // количество строк в исходной квадратной матрице
-const int MATRIX_SIZE = 15;
+const int MATRIX_SIZE = 1500;
 
 /// Функция InitMatrix() заполняет переданную в качестве
 /// параметра квадратную матрицу случайными значениями
@@ -116,7 +116,55 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
     }
 }
 
-int main()
+/// Функция ParallelGaussMethod() решает СЛАУ методом Гаусса параллельно
+/// matrix - исходная матрица коэффиициентов уравнений, входящих в СЛАУ,
+/// последний столбей матрицы - значения правых частей уравнений
+/// rows - количество строк в исходной матрице
+/// result - массив ответов СЛАУ
+void ParallelGaussMethod(double** matrix, const int rows, double* result)
+{
+    int k;
+    double koef;
+
+    high_resolution_clock::time_point t1, t2;
+    t1 = high_resolution_clock::now();
+
+    // прямой ход метода Гаусса
+    for (k = 0; k < rows; ++k)
+    {
+        //
+        cilk_for(int i = k + 1; i < rows; ++i)
+        {
+            koef = -matrix[i][k] / matrix[k][k];
+
+            for (int j = k; j <= rows; ++j)
+            {
+                matrix[i][j] += koef * matrix[k][j];
+            }
+        }
+    }
+
+    t2 = high_resolution_clock::now();
+    duration<double> duration = (t2 - t1);
+    printf("Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
+
+    // обратный ход метода Гаусса
+    result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
+
+    for (k = rows - 2; k >= 0; --k)
+    {
+        result[k] = matrix[k][rows];
+
+        //
+        cilk_for(int j = k + 1; j < rows; ++j)
+        {
+            result[k] -= matrix[k][j] * result[j];
+        }
+
+        result[k] /= matrix[k][k];
+    }
+}
+* / int main()
 {
     srand((unsigned)time(0));
 
@@ -136,11 +184,13 @@ int main()
         delete[] matrix[i];
     }
 
-    printf("Solution:\n");
-
-    for (int i = 0; i < matrix_lines; ++i)
+    if (useTestMatrix)
     {
-        printf("x(%d) = %lf\n", i, result[i]);
+        printf("Solution:\n");
+        for (int i = 0; i < matrix_lines; ++i)
+        {
+            printf("x(%d) = %lf\n", i, result[i]);
+        }
     }
 
     delete[] result;

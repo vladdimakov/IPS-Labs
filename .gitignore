@@ -1,7 +1,9 @@
 *.sdf
 *.opensdf
 *.user
+*.tb6
 */.vs/
 */Debug/
 */Release/
 */x64/
+*/My Amplifier XE Results*
