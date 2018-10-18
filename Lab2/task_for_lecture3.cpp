@@ -72,7 +72,7 @@ void InitTestMatrix(double** test_matrix)
 /// последний столбей матрицы - значения правых частей уравнений
 /// rows - количество строк в исходной матрице
 /// result - массив ответов СЛАУ
-void SerialGaussMethod(double** matrix, const int rows, double* result)
+double SerialGaussMethod(double** matrix, const int rows, double* result)
 {
     int k;
     double koef;
@@ -83,7 +83,6 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
     // прямой ход метода Гаусса
     for (k = 0; k < rows; ++k)
     {
-        //
         for (int i = k + 1; i < rows; ++i)
         {
             koef = -matrix[i][k] / matrix[k][k];
@@ -97,7 +96,6 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
 
     t2 = high_resolution_clock::now();
     duration<double> duration = (t2 - t1);
-    printf("Serial Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
 
     // обратный ход метода Гаусса
     result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
@@ -106,7 +104,6 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
     {
         result[k] = matrix[k][rows];
 
-        //
         for (int j = k + 1; j < rows; ++j)
         {
             result[k] -= matrix[k][j] * result[j];
@@ -114,6 +111,8 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
 
         result[k] /= matrix[k][k];
     }
+
+    return duration.count();
 }
 
 /// Функция ParallelGaussMethod() решает СЛАУ методом Гаусса параллельно
@@ -121,7 +120,7 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
 /// последний столбей матрицы - значения правых частей уравнений
 /// rows - количество строк в исходной матрице
 /// result - массив ответов СЛАУ
-void ParallelGaussMethod(double** matrix, const int rows, double* result)
+double ParallelGaussMethod(double** matrix, const int rows, double* result)
 {
     int k;
 
@@ -144,7 +143,6 @@ void ParallelGaussMethod(double** matrix, const int rows, double* result)
 
     t2 = high_resolution_clock::now();
     duration<double> duration = (t2 - t1);
-    printf("Parallel Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
 
     // обратный ход метода Гаусса
     result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
@@ -160,6 +158,8 @@ void ParallelGaussMethod(double** matrix, const int rows, double* result)
 
         result[k] = resultTmp.get_value() / matrix[k][k];
     }
+
+    return duration.count();
 }
 
 int main()
@@ -169,21 +169,38 @@ int main()
     bool useTestMatrix = false;
 
     const int matrix_lines = useTestMatrix ? 4 : MATRIX_SIZE;
-    double** matrix = new double*[matrix_lines];
-    useTestMatrix ? InitTestMatrix(matrix) : InitMatrix(matrix);
+    double** serialMatrix = new double*[matrix_lines];
+    double** parallelMatrix = new double*[matrix_lines];
+
+    if (useTestMatrix)
+    {
+        InitTestMatrix(serialMatrix);
+        InitTestMatrix(parallelMatrix);
+    }
+    else
+    {
+        InitMatrix(serialMatrix);
+        InitMatrix(parallelMatrix);
+    }
 
     // массив решений СЛАУ
     double* result = new double[matrix_lines];
 
-    // SerialGaussMethod(matrix, matrix_lines, result);
-    ParallelGaussMethod(matrix, matrix_lines, result);
+    double serialDuration = SerialGaussMethod(serialMatrix, matrix_lines, result);
+    double parallelDuration = ParallelGaussMethod(parallelMatrix, matrix_lines, result);
+
+    printf("Serial Gauss method direct pass duration: %g (seconds)\n", serialDuration);
+    printf("Parallel Gauss method direct pass duration: %g (seconds)\n", parallelDuration);
+    printf("Acceleration: %g\n\n", serialDuration / parallelDuration);
 
     for (int i = 0; i < matrix_lines; ++i)
     {
-        delete[] matrix[i];
+        delete[] serialMatrix[i];
+        delete[] parallelMatrix[i];
     }
 
-    delete[] matrix;
+    delete[] serialMatrix;
+    delete[] parallelMatrix;
 
     if (useTestMatrix)
     {
