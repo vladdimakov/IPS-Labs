@@ -97,7 +97,7 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
 
     t2 = high_resolution_clock::now();
     duration<double> duration = (t2 - t1);
-    printf("Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
+    printf("Serial Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
 
     // обратный ход метода Гаусса
     result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
@@ -124,7 +124,6 @@ void SerialGaussMethod(double** matrix, const int rows, double* result)
 void ParallelGaussMethod(double** matrix, const int rows, double* result)
 {
     int k;
-    double koef;
 
     high_resolution_clock::time_point t1, t2;
     t1 = high_resolution_clock::now();
@@ -132,10 +131,9 @@ void ParallelGaussMethod(double** matrix, const int rows, double* result)
     // прямой ход метода Гаусса
     for (k = 0; k < rows; ++k)
     {
-        //
         cilk_for(int i = k + 1; i < rows; ++i)
         {
-            koef = -matrix[i][k] / matrix[k][k];
+            double koef = -matrix[i][k] / matrix[k][k];
 
             for (int j = k; j <= rows; ++j)
             {
@@ -146,22 +144,21 @@ void ParallelGaussMethod(double** matrix, const int rows, double* result)
 
     t2 = high_resolution_clock::now();
     duration<double> duration = (t2 - t1);
-    printf("Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
+    printf("Parallel Gauss method direct pass duration: %g (seconds)\n\n", duration.count());
 
     // обратный ход метода Гаусса
     result[rows - 1] = matrix[rows - 1][rows] / matrix[rows - 1][rows - 1];
 
     for (k = rows - 2; k >= 0; --k)
     {
-        result[k] = matrix[k][rows];
+        cilk::reducer_opadd<double> resultTmp(matrix[k][rows]);
 
-        //
         cilk_for(int j = k + 1; j < rows; ++j)
         {
-            result[k] -= matrix[k][j] * result[j];
+            resultTmp -= matrix[k][j] * result[j];
         }
 
-        result[k] /= matrix[k][k];
+        result[k] = resultTmp.get_value() / matrix[k][k];
     }
 }
 
@@ -178,12 +175,15 @@ int main()
     // массив решений СЛАУ
     double* result = new double[matrix_lines];
 
-    SerialGaussMethod(matrix, matrix_lines, result);
+    // SerialGaussMethod(matrix, matrix_lines, result);
+    ParallelGaussMethod(matrix, matrix_lines, result);
 
     for (int i = 0; i < matrix_lines; ++i)
     {
         delete[] matrix[i];
     }
+
+    delete[] matrix;
 
     if (useTestMatrix)
     {
