@@ -128,22 +128,22 @@ int main()
 
     unsigned status = OK_STATUS;
 
+    srand((unsigned)time(0));
+
+    const size_t numb_rows = 2;
+    const size_t numb_cols = 3;
+
+    double** matrix = new double*[numb_rows];
+    for (size_t i = 0; i < numb_rows; ++i)
+    {
+        matrix[i] = new double[numb_cols];
+    }
+
+    double* average_vals_in_rows = new double[numb_rows];
+    double* average_vals_in_cols = new double[numb_cols];
+
     try
     {
-        srand((unsigned)time(0));
-
-        const size_t numb_rows = 2;
-        const size_t numb_cols = 3;
-
-        double** matrix = new double*[numb_rows];
-        for (size_t i = 0; i < numb_rows; ++i)
-        {
-            matrix[i] = new double[numb_cols];
-        }
-
-        double* average_vals_in_rows = new double[numb_rows];
-        double* average_vals_in_cols = new double[numb_cols];
-
         InitMatrix(matrix, numb_rows, numb_cols);
 
         PrintMatrix(matrix, numb_rows, numb_cols);
@@ -163,6 +163,15 @@ int main()
         except.what();
         status = ERROR_STATUS;
     }
+
+    for (size_t i = 0; i < numb_rows; ++i)
+    {
+        delete[] matrix[i];
+    }
+
+    delete[] matrix;
+    delete[] average_vals_in_rows;
+    delete[] average_vals_in_cols;
 
     return status;
 }
